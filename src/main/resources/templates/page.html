@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Book List</title>
+
+    <script>
+        function showUpdateForm(bookId) {
+            let formRow = document.getElementById("updateForm-" + bookId);
+            if (formRow) {
+                formRow.style.display = "table-row";
+            } else {
+                console.error("Form not found for book ID: " + bookId);
+            }
+        }
+
+        function hideUpdateForm(bookId) {
+            let formRow = document.getElementById("updateForm-" + bookId);
+            if (formRow) {
+                formRow.style.display = "none";
+            }
+        }
+    </script>
+    <!-- <link rel="stylesheet" type="text/css" th:href="@{/table.css}"> -->
+</head>
+<body>
+<div class="container">
+    <div class="left-section">
+
+        <div class="create-form" th:if="${role == 'admin'}">
+            <h2 class="form-title">Create New Book</h2>
+            <form th:action="@{/create-book}" th:object="${newBook}" method="post" class="book-form">
+                <div class="form-group">
+                    <label>Book Name:</label>
+                    <input type="text" th:field="*{bookName}" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Description:</label>
+                    <input type="text" th:field="*{description}" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Publication Date:</label>
+                    <input type="date" th:field="*{publicationDate}" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Price:</label>
+                    <input type="number" th:field="*{price}" step="0.01" min="1" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Author:</label>
+                    <input type="text" th:field="*{author}" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Category:</label>
+                    <select th:field="*{bookCategory}" required class="form-select">
+                        <option value="">Select Category</option>
+                        <option th:each="category : ${categories}"
+                                th:value="${category.BookCategoryId}"
+                                th:text="${category.BookGenreType}"></option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-create">Create Book</button>
+            </form>
+        </div>
+
+        <!-- SearchBar -->
+        <div class="search-bar">
+            <form action="/search-book" method="get" class="search-form">
+                <input type="text" name="name" placeholder="Enter book name" th:value="${searchName}" class="search-input">
+                <button type="submit" class="btn btn-search">Search</button>
+                <button type="button" onclick="window.location.href='/page'" class="btn btn-reset">Reset</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Book List -->
+    <div class="table-section">
+        <h2 class="table-title">Book List</h2>
+        <a href="/logout">Đăng xuất</a>
+        <table class="book-table">
+            <thead>
+            <tr>
+                <th class="col-id">ID</th>
+                <th class="col-name">Name</th>
+                <th class="col-desc">Description</th>
+                <th class="col-date">Publication Date</th>
+                <th class="col-price">Price</th>
+                <th class="col-author">Author</th>
+                <th class="col-category">Category</th>
+
+                <th th:if="${role == 'admin'}" class="col-action">Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <th:block th:each="book : ${books}">
+                <tr class="book-row">
+                    <td th:text="${book.bookId}" class="col-id"></td>
+                    <td th:text="${book.bookName}" class="col-name"></td>
+                    <td th:text="${book.description}" class="col-desc"></td>
+                    <td th:text="${#dates.format(book.publicationDate, 'dd/MM/yyyy')}" class="col-date"></td>
+                    <td th:text="${#numbers.formatDecimal(book.price, 2, 2)}" class="col-price"></td>
+                    <td th:text="${book.author}" class="col-author"></td>
+                    <td th:text="${book.bookCategory?.BookGenreType}" class="col-category"></td>
+                    <!-- Chỉ hiển thị cột Action nếu role là admin -->
+                    <td th:if="${role == 'admin'}" class="col-action">
+                        <div class="action-buttons">
+                            <button type="button" th:onclick="|showUpdateForm('${book.bookId}')|" class="btn btn-update">Update</button>
+                            <form th:action="@{/delete-book}" method="post" class="delete-form">
+                                <input type="hidden" name="id" th:value="${book.bookId}"/>
+                                <button type="submit" onclick="return confirm('Are you sure you want to delete this book?')" class="btn btn-delete">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+
+                <tr th:if="${role == 'admin'}" th:id="|updateForm-${book.bookId}|" style="display:none;" class="update-form-row">
+                    <td colspan="8">
+                        <form th:action="@{/update-book}" method="post" class="update-form">
+                            <input type="hidden" name="bookId" th:value="${book.bookId}"/>
+                            <table class="inner-table">
+                                <tr>
+                                    <td class="col-id"><input type="text" name="bookName" th:value="${book.bookName}" required class="form-input"></td>
+                                    <td class="col-name"><input type="text" name="description" th:value="${book.description}" required class="form-input"></td>
+                                    <td class="col-desc"><input type="date" name="publicationDate" th:value="${#dates.format(book.publicationDate, 'yyyy-MM-dd')}" required class="form-input"></td>
+                                    <td class="col-date"><input type="number" name="price" th:value="${book.price}" step="0.01" min="1" required class="form-input"></td>
+                                    <td class="col-price"><input type="text" name="author" th:value="${book.author}" required class="form-input"></td>
+                                    <td class="col-author">
+                                        <select name="bookCategory" required class="form-select">
+                                            <option value="">Select Category</option>
+                                            <option th:each="category : ${categories}"
+                                                    th:value="${category.BookCategoryId}"
+                                                    th:text="${category.BookGenreType}"
+                                                    th:selected="${category.BookCategoryId == book.bookCategory?.BookCategoryId}">
+                                            </option>
+                                        </select>
+                                    </td>
+                                    <td class="col-action" colspan="2">
+                                        <div class="action-buttons">
+                                            <button type="submit" class="btn btn-update-submit">Update Book</button>
+                                            <button type="button" th:onclick="|hideUpdateForm('${book.bookId}')|" class="btn btn-cancel">Cancel</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </form>
+                    </td>
+                </tr>
+            </th:block>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>
